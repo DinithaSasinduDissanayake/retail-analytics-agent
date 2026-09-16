@@ -1,0 +1,4 @@
+duckdb>=1.0.0
+pydantic-ai>=0.0.14
+networkx>=3.0
+openai>=1.0.0

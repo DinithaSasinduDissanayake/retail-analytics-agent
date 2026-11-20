@@ -55,7 +55,7 @@ export const Thread: FC = () => {
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-white dark:bg-[#212121]"
       style={{
-        ["--thread-max-width" as string]: "44rem",
+        ["--thread-max-width" as string]: "58rem",
         ["--composer-radius" as string]: "24px",
         ["--composer-padding" as string]: "10px",
       }}
@@ -100,7 +100,7 @@ const ThreadMessage: FC = () => {
 
 const ThreadScrollToBottom: FC = () => {
   return (
-    <ThreadPrimitive.ScrollToBottom render={<TooltipIconButton tooltip="Scroll to bottom" variant="outline" className="aui-thread-scroll-to-bottom dark:border-border dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible" />}><ArrowDownIcon /></ThreadPrimitive.ScrollToBottom>
+    <ThreadPrimitive.ScrollToBottom render={<TooltipIconButton tooltip="Scroll to bottom" variant="outline" className="aui-thread-scroll-to-bottom bg-white text-[#0d0d0d] border-[#d4d4d4] hover:bg-[#f5f5f5] dark:border-white/20 dark:bg-[#303030] dark:text-[#ececec] dark:hover:bg-[#3f3f3f] shadow-md absolute -top-12 z-10 self-center rounded-full p-2.5 disabled:invisible" />}><ArrowDownIcon className="size-4" /></ThreadPrimitive.ScrollToBottom>
   );
 };
 

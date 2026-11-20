@@ -36,6 +36,17 @@ export default function App() {
     }
   }, [chats]);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key.toLowerCase() === "q") {
+        e.preventDefault();
+        setCollapsed((c) => !c);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const activeChat = chats.find((c) => c.id === activeChatId);
 
   const handleNewChat = useCallback(() => {

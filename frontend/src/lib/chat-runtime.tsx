@@ -41,7 +41,7 @@ export function WarehouseRuntimeProvider({
 }) {
   const adapter = useMemo<ChatModelAdapter>(
     () => ({
-      async run({ messages, abortSignal }) {
+      async *run({ messages, abortSignal }) {
         const lastMsg = [...messages].reverse().find((m) => m.role === "user");
         const query = lastMsg
           ? lastMsg.content
@@ -51,8 +51,14 @@ export function WarehouseRuntimeProvider({
           : "";
 
         if (!query) {
-          return { content: [] };
+          return;
         }
+
+        const steps: string[] = ["Sending request to server..."];
+        yield {
+          content: [{ type: "reasoning", text: steps.join("\n") }],
+          status: { type: "running" },
+        };
 
         const response = await fetch("/api/agent/run", {
           method: "POST",
@@ -91,6 +97,27 @@ export function WarehouseRuntimeProvider({
             }
 
             switch (event.type) {
+              case "progress": {
+                const msg = String(event.message || "").trim();
+                if (msg) {
+                  steps.push(msg);
+                  yield {
+                    content: [{ type: "reasoning", text: steps.join("\n") }],
+                    status: { type: "running" },
+                  };
+                }
+                break;
+              }
+              case "data_found": {
+                const dataStr = String(event.data || "");
+                const rowCount = Math.max(0, dataStr.split("\n").length - 2);
+                steps.push(`Received query result (${rowCount > 0 ? `${rowCount} rows` : `${dataStr.length} chars`})`);
+                yield {
+                  content: [{ type: "reasoning", text: steps.join("\n") }],
+                  status: { type: "running" },
+                };
+                break;
+              }
               case "done":
                 fullAnswer = String(event.answer || "");
                 break;
@@ -103,8 +130,12 @@ export function WarehouseRuntimeProvider({
         const finalText = fullAnswer || "(no response)";
         onExchangeComplete?.(sessionId, query, finalText);
 
-        return {
-          content: [{ type: "text", text: finalText }],
+        yield {
+          content: [
+            { type: "reasoning", text: steps.join("\n") },
+            { type: "text", text: finalText },
+          ],
+          status: { type: "complete", reason: "stop" },
         };
       },
     }),

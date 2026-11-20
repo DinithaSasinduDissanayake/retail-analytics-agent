@@ -143,10 +143,9 @@ const ThreadSuggestionItem: FC = () => {
 const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
-      <ComposerPrimitive.AttachmentDropzone render={<div data-slot="aui_composer-shell" className="bg-white dark:bg-[#303030] focus-within:border-ring/75 focus-within:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/50 flex w-full flex-col gap-2 rounded-[28px] border border-[#e5e5e5] dark:border-transparent p-(--composer-padding) transition-shadow focus-within:ring-2 data-[dragging=true]:border-dashed" />}><ComposerAttachments /><ComposerPrimitive.Input
-                      placeholder="Send a message..."
-                      className="aui-composer-input placeholder:text-[#5d5d5d] dark:placeholder:text-[#a8a8a8] max-h-32 min-h-10 w-full resize-none bg-transparent px-1.75 py-1 text-sm text-[#0d0d0d] dark:text-[#ececec] outline-none"
-                      placeholder="Ask anything"
+      <ComposerPrimitive.AttachmentDropzone render={<div data-slot="aui_composer-shell" className="bg-white dark:bg-[#303030] focus-within:border-ring/75 focus-within:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/50 flex w-full flex-col gap-2 rounded-[28px] border border-[#e5e5e5] dark:border-white/10 p-(--composer-padding) transition-shadow focus-within:ring-2 data-[dragging=true]:border-dashed" />}><ComposerAttachments /><ComposerPrimitive.Input
+                      placeholder="Ask anything about sales, stock, margins, or customers..."
+                      className="aui-composer-input placeholder:text-[#5d5d5d] dark:placeholder:text-[#a8a8a8] max-h-32 min-h-10 w-full resize-none bg-transparent px-2 py-1 text-sm text-[#0d0d0d] dark:text-[#ececec] outline-none"
                       rows={1}
                       autoFocus
                       aria-label="Message input"
@@ -195,7 +194,7 @@ const AssistantMessage: FC = () => {
       <div
         data-slot="aui_assistant-message-content"
         // [contain-intrinsic-size:auto_24px] fixes issue #4104, don't change without checking for regressions
-        className="text-[#0d0d0d] dark:text-[#ececec] px-2 leading-relaxed wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
+        className="text-[#0d0d0d] dark:text-[#ececec] px-4 leading-relaxed wrap-break-word [contain-intrinsic-size:auto_24px] [content-visibility:auto]"
       >
         <MessagePrimitive.GroupedParts
           groupBy={groupPartByType({
@@ -255,7 +254,7 @@ const AssistantMessage: FC = () => {
 
       <div
         data-slot="aui_assistant-message-footer"
-        className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
+        className={cn("ms-4 flex items-center", ACTION_BAR_HEIGHT)}
       >
         <BranchPicker />
         <AssistantActionBar />

@@ -1,4 +1,7 @@
 duckdb>=1.0.0
-pydantic-ai>=0.0.14
+pydantic-ai>=1.0.0
 networkx>=3.0
+pandas>=2.0.0
 openai>=1.0.0
+python-dotenv>=1.0.0
+pytest>=8.0.0

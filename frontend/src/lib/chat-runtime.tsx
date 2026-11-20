@@ -54,9 +54,19 @@ export function WarehouseRuntimeProvider({
           return;
         }
 
-        const steps: string[] = ["Sending request to server..."];
+        const steps: string[] = ["- Sending request to server..."];
+        const buildContent = (text: string) => {
+          const parts: Array<{ type: "reasoning"; text: string } | { type: "text"; text: string }> = [
+            { type: "reasoning", text: steps.join("\n") },
+          ];
+          if (text) {
+            parts.push({ type: "text", text });
+          }
+          return parts;
+        };
+
         yield {
-          content: [{ type: "reasoning", text: steps.join("\n") }],
+          content: buildContent(""),
           status: { type: "running" },
         };
 
@@ -100,9 +110,9 @@ export function WarehouseRuntimeProvider({
               case "progress": {
                 const msg = String(event.message || "").trim();
                 if (msg) {
-                  steps.push(msg);
+                  steps.push(`- ${msg}`);
                   yield {
-                    content: [{ type: "reasoning", text: steps.join("\n") }],
+                    content: buildContent(fullAnswer),
                     status: { type: "running" },
                   };
                 }
@@ -111,15 +121,23 @@ export function WarehouseRuntimeProvider({
               case "data_found": {
                 const dataStr = String(event.data || "");
                 const rowCount = Math.max(0, dataStr.split("\n").length - 2);
-                steps.push(`Received query result (${rowCount > 0 ? `${rowCount} rows` : `${dataStr.length} chars`})`);
+                steps.push(`- Received query result (${rowCount > 0 ? `${rowCount} rows` : `${dataStr.length} chars`})`);
                 yield {
-                  content: [{ type: "reasoning", text: steps.join("\n") }],
+                  content: buildContent(fullAnswer),
+                  status: { type: "running" },
+                };
+                break;
+              }
+              case "text_delta": {
+                fullAnswer += String(event.delta || "");
+                yield {
+                  content: buildContent(fullAnswer),
                   status: { type: "running" },
                 };
                 break;
               }
               case "done":
-                fullAnswer = String(event.answer || "");
+                fullAnswer = String(event.answer || fullAnswer || "");
                 break;
               case "error":
                 throw new Error(String(event.message || "Agent error"));

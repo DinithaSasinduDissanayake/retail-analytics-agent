@@ -66,25 +66,28 @@ async def run_analysis(
     yield {"type": "progress", "message": "Starting analysis..."}
 
     async def run_agent() -> None:
-        """Run agent in background. Pushes terminal events to queue."""
+        """Run agent in background with streaming. Pushes terminal events to queue."""
         try:
-            result = await asyncio.wait_for(
-                warehouse_agent.run(
+            async def _stream() -> None:
+                async with warehouse_agent.run_stream(
                     user_query,
                     deps=deps,
                     usage_limits=_USAGE_LIMITS,
                     message_history=message_history,
-                ),
-                timeout=MAX_TIME_SEC,
-            )
-            text = result.output if hasattr(result, "output") else str(result)
-            # Serialise the full history for the caller to persist
-            messages_json = result.all_messages_json().decode()
-            await event_queue.put({
-                "type": "done",
-                "answer": text or "(no response)",
-                "messages_json": messages_json,
-            })
+                ) as result:
+                    full_text = ""
+                    async for delta in result.stream_text(delta=True):
+                        full_text += delta
+                        await event_queue.put({"type": "text_delta", "delta": delta})
+
+                    messages_json = result.all_messages_json().decode()
+                    await event_queue.put({
+                        "type": "done",
+                        "answer": full_text or "(no response)",
+                        "messages_json": messages_json,
+                    })
+
+            await asyncio.wait_for(_stream(), timeout=MAX_TIME_SEC)
         except asyncio.TimeoutError:
             await event_queue.put({
                 "type": "error",

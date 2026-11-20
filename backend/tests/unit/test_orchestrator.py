@@ -2,33 +2,45 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from contextlib import asynccontextmanager
+from unittest.mock import patch
 
 import pytest
 
 
+def _make_stream_cm(answer: str = "done!", on_enter=None):
+    """Build an async context manager mimicking `warehouse_agent.run_stream`."""
+
+    class _MockResult:
+        async def stream_text(self, delta: bool = True):
+            if answer:
+                yield answer
+
+        def all_messages_json(self) -> bytes:
+            return b"[]"
+
+    @asynccontextmanager
+    async def _mock_run_stream(user_query, *args, **kwargs):
+        if on_enter is not None:
+            await on_enter(kwargs.get("deps"))
+        yield _MockResult()
+
+    return _mock_run_stream
+
+
 class TestOrchestratorInfrastructure:
-    """Test the orchestrator's event flow infrastructure.
-    
-    These tests verify the orchestrator mechanics (event queue, cleanup, error
-    handling) without making actual LLM calls.
-    """
+    """Test the orchestrator's event flow infrastructure."""
 
     @pytest.mark.asyncio
     async def test_event_queue_flow(self):
         """Events flow through queue in order."""
         from src.agent.orchestrator import run_analysis
 
-        async def mock_run(user_query, *args, **kwargs):
-            deps = kwargs["deps"]
+        async def on_enter(deps):
             await deps.event_queue.put({"type": "progress", "message": "step 1"})
             await deps.event_queue.put({"type": "data_found", "data": "result_1"})
-            await deps.event_queue.put({"type": "done", "answer": "done!"})
-            mock = AsyncMock()
-            mock.output = "done!"
-            return mock
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", mock_run):
+        with patch("src.agent.orchestrator.warehouse_agent.run_stream", _make_stream_cm("done!", on_enter)):
             events = []
             async for event in run_analysis("test-session", "test query"):
                 events.append(event)
@@ -36,7 +48,7 @@ class TestOrchestratorInfrastructure:
                     break
 
             types = [e["type"] for e in events]
-            assert types == ["progress", "progress", "data_found", "done"]
+            assert types == ["progress", "progress", "data_found", "text_delta", "done"]
             assert events[-1]["answer"] == "done!"
 
     @pytest.mark.asyncio
@@ -44,10 +56,12 @@ class TestOrchestratorInfrastructure:
         """Agent errors are yielded as error events."""
         from src.agent.orchestrator import run_analysis
 
-        async def mock_run(*args, **kwargs):
+        @asynccontextmanager
+        async def mock_run_stream(*args, **kwargs):
             raise RuntimeError("LLM unavailable")
+            yield  # pragma: no cover
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", mock_run):
+        with patch("src.agent.orchestrator.warehouse_agent.run_stream", mock_run_stream):
             events = []
             async for event in run_analysis("test-session", "test query"):
                 events.append(event)
@@ -62,18 +76,17 @@ class TestOrchestratorInfrastructure:
         """Generator doesn't hang when consumer exits early."""
         from src.agent.orchestrator import run_analysis
 
-        async def hanging_run(*args, **kwargs):
+        @asynccontextmanager
+        async def hanging_stream(*args, **kwargs):
             deps = kwargs["deps"]
             await deps.event_queue.put({"type": "progress", "message": "working..."})
             await asyncio.Event().wait()
+            yield  # pragma: no cover
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", hanging_run):
+        with patch("src.agent.orchestrator.warehouse_agent.run_stream", hanging_stream):
             gen = run_analysis("test-session", "test query")
-            # Read just the first progress event, then close
-            async for event in gen:
+            async for _event in gen:
                 break
-
-            # Generator should close cleanly
             await gen.aclose()
 
     @pytest.mark.asyncio
@@ -81,16 +94,11 @@ class TestOrchestratorInfrastructure:
         """Multiple data_found events are yielded correctly."""
         from src.agent.orchestrator import run_analysis
 
-        async def mock_run(user_query, *args, **kwargs):
-            deps = kwargs["deps"]
+        async def on_enter(deps):
             await deps.event_queue.put({"type": "data_found", "data": "q1_result"})
             await deps.event_queue.put({"type": "data_found", "data": "q2_result"})
-            await deps.event_queue.put({"type": "done", "answer": "synthesis"})
-            mock = AsyncMock()
-            mock.output = "synthesis"
-            return mock
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", mock_run):
+        with patch("src.agent.orchestrator.warehouse_agent.run_stream", _make_stream_cm("synthesis", on_enter)):
             events = []
             async for event in run_analysis("test-session", "multi step"):
                 events.append(event)
@@ -109,14 +117,11 @@ class TestOrchestratorInfrastructure:
 
         captured_deps = None
 
-        async def mock_run(user_query, *args, **kwargs):
+        async def on_enter(deps):
             nonlocal captured_deps
-            captured_deps = kwargs["deps"]
-            mock = AsyncMock()
-            mock.output = "ok"
-            return mock
+            captured_deps = deps
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", mock_run):
+        with patch("src.agent.orchestrator.warehouse_agent.run_stream", _make_stream_cm("ok", on_enter)):
             async for event in run_analysis("test-session", "test"):
                 if event.get("type") in ("done", "error"):
                     break
@@ -124,27 +129,27 @@ class TestOrchestratorInfrastructure:
         assert captured_deps is not None
         assert captured_deps.db_path == DB_PATH
         assert captured_deps.data_dir == DATA_DIR
-        assert captured_deps.event_queue is not None
+        assert isinstance(captured_deps.event_queue, asyncio.Queue)
 
     @pytest.mark.asyncio
     async def test_timeout_limit(self):
-        """Orchestrator enforces time limit."""
+        """Timeout triggers error event."""
         from src.agent.orchestrator import run_analysis
 
-        async def slow_run(*args, **kwargs):
+        @asynccontextmanager
+        async def slow_stream(*args, **kwargs):
             await asyncio.sleep(10)
-            mock = AsyncMock()
-            mock.output = "too late"
-            return mock
+            yield  # pragma: no cover
 
-        with patch("src.agent.orchestrator.warehouse_agent.run", slow_run), \
-             patch("src.agent.orchestrator.MAX_TIME_SEC", 1):
+        with (
+            patch("src.agent.orchestrator.warehouse_agent.run_stream", slow_stream),
+            patch("src.agent.orchestrator.MAX_TIME_SEC", 0.05),
+        ):
             events = []
             async for event in run_analysis("test-session", "slow query"):
                 events.append(event)
                 if event.get("type") in ("done", "error"):
                     break
 
-        assert events[-1]["type"] == "error"
-        msg = events[-1]["message"].lower()
-        assert "limit" in msg or "timed out" in msg or "time" in msg
+            assert events[-1]["type"] == "error"
+            assert "limit" in events[-1]["message"].lower()

@@ -8,17 +8,17 @@ import pytest
 
 
 _HERE = Path(__file__).resolve().parent  # tests/integration/
-# Project root is backend/tests/integration/../../.. (warehouse-prototype/)
+# Project root is backend/tests/integration/../../..
 TEST_DATA = _HERE.parent.parent.parent / "data"
 
 
 @pytest.fixture
 def mdb_path(tmp_path) -> str:
     """Copy the .mdb file to a temp location so ETL tests don't clobber production data."""
-    src = TEST_DATA / "recent.mdb"
+    src = TEST_DATA / "pos_export.mdb"
     if not src.exists():
         pytest.skip(f"Source .mdb file not found: {src}")
-    dest = tmp_path / "recent.mdb"
+    dest = tmp_path / "pos_export.mdb"
     shutil.copy2(src, dest)
     return str(dest)
 

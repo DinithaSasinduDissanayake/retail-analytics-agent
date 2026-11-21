@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 # This file lives at backend/tests/unit/conftest.py
-# Project root = 4 levels up = warehouse-prototype/
+# Project root = 4 levels up
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 # Add backend/ to path so "from src.agent..." imports work

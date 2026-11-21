@@ -70,7 +70,7 @@ This isn't a "misconfiguration." Every major framework has the same structural g
 - Vanna's agent loop defers to the model
 - Naive ReAct has no external completion check
 
-### Why This Matters for a Hardware Store
+### Why This Matters for a Retail Store
 
 For the query *"Should we change our profit margins?"*, a default LLM loop will:
 1. Query current margins → finds 12% overall
@@ -358,7 +358,7 @@ Every agent call that involves SQL gets this injected as part of the system prom
 ```markdown
 ## Database Schema (warehouse.db — READ ONLY)
 
-### products (6,610 rows)
+### products (thousands of rows)
 - product_id: INTEGER (primary key)
 - name: VARCHAR — Product name (multilingual)
 - category_id: INTEGER → categories.category_id
@@ -370,7 +370,7 @@ Every agent call that involves SQL gets this injected as part of the system prom
 - reorder_level: INTEGER — Minimum stock before reorder alert
 - last_purchase_date: DATE
 
-### dockets (66,770 rows over ~3 years)
+### dockets (thousands of rows over ~3 years)
 - docket_id: INTEGER (primary key)
 - date: DATE — Transaction date
 - customer_id: INTEGER
@@ -378,7 +378,7 @@ Every agent call that involves SQL gets this injected as part of the system prom
 - tax: DECIMAL(10,2)
 - cashier_id, register_id: INTEGER
 
-### docket_items (~200,000 rows)
+### docket_items (tens of thousands of rows)
 - docket_item_id: INTEGER (primary key)
 - docket_id: INTEGER → dockets.docket_id
 - product_id: INTEGER → products.product_id  
@@ -635,7 +635,7 @@ Step 4: Python script:
    - Write to DuckDB staging tables
    - Validate row counts against expected ranges
    - Swap staging into production tables
-Step 5: UI shows "Sync complete: 6,610 products, 66,770 dockets"
+Step 5: UI shows "Sync complete: thousands of products, thousands of dockets"
 ```
 
 **Schema drift detection:** If legacy POS ever changes (unlikely but possible), the

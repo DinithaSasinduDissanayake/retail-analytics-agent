@@ -6,74 +6,41 @@ from pathlib import Path
 import duckdb
 
 SCHEMA_MARKDOWN = """\
-## Database Schema (warehouse.db — READ ONLY)
+## Database Schema (READ ONLY)
 
-### Stock (6,858 rows — products)
+### Stock (products)
 - stock_id: VARCHAR — Product ID/SKU
 - description: VARCHAR — Product name
-- dept_id: VARCHAR → Departments.dept_no
-- cost: VARCHAR — Latest purchase cost (numeric, cast with CAST(x AS DECIMAL))
-- sell: VARCHAR — Current retail price (numeric, cast with CAST(x AS DECIMAL))
-- quantity: VARCHAR — Current stock level (numeric, cast with CAST(x AS INTEGER))
-- supplier_id: VARCHAR → Supplier.supp_no
-- Barcode: VARCHAR
-- inactive: VARCHAR — '1' if inactive, empty or NULL if active
-- cat1, cat2: VARCHAR — Category references
-- date_created, date_modified: VARCHAR
+- dept_id: VARCHAR → Departments.dept_id
+- cost_price: DOUBLE — Latest purchase cost
+- sell_price: DOUBLE — Current retail price
+- quantity: INTEGER — Current stock level
+- inactive: BOOLEAN — True if inactive, False if active
 
-### Docket (10,759 rows — sales transactions)
-- docket_no: VARCHAR (primary key, numeric)
-- docket_date: VARCHAR — Transaction date (YYYY-MM-DD format)
-- debtors_no: VARCHAR → Customer.cust_no
-- total_amount: VARCHAR — Docket total
-- tax_amount: VARCHAR — Tax
-- cashier_id: VARCHAR → Staff.staff_id
-- register_id: VARCHAR
+### Departments (product categories)
+- dept_id: VARCHAR (primary key)
+- dept_name: VARCHAR — Department name
 
-### DocketLine (19,061 rows — line items per docket)
-- docket_no: VARCHAR → Docket.docket_no
-- stock_no: VARCHAR → Stock.stock_id
-- qty: VARCHAR — Quantity sold
-- price: VARCHAR — Unit price at time of sale
-- discount: VARCHAR — Discount applied
-- tax_code: VARCHAR
+### Docket (sales transactions)
+- docket_id: VARCHAR (primary key)
+- docket_date: TIMESTAMP — Transaction timestamp
+- total_amount: DOUBLE — Docket total
 
-### Customer (704 rows)
-- cust_no: VARCHAR (primary key, numeric)
-- name: VARCHAR
-- address: VARCHAR
-- phone: VARCHAR
-
-### Supplier (498 rows)
-- supp_no: VARCHAR (primary key, numeric)
-- name: VARCHAR
-- contact: VARCHAR
-- phone: VARCHAR
-
-### Departments (25 rows)
-- dept_no: VARCHAR (primary key)
-- name: VARCHAR
-- description: VARCHAR
-
-### CategoryValues (3,224 rows)
-- cat_val: VARCHAR (primary key)
-- dept_no: VARCHAR → Departments
-- description: VARCHAR
-
-### Payments (17,835 rows)
-- docket_no: VARCHAR → Docket.docket_no
-- pay_type: VARCHAR
-- amount: VARCHAR
-- tender_amount: VARCHAR
+### DocketLine (line items per docket)
+- line_id: INTEGER (primary key)
+- docket_id: VARCHAR → Docket.docket_id
+- stock_id: VARCHAR → Stock.stock_id
+- quantity: INTEGER — Quantity sold
+- unit_price: DOUBLE — Unit price at time of sale
+- line_total: DOUBLE — Line total
 
 ## Business Rules
-- Columns with numeric values are stored as VARCHAR — use CAST() in SQL
-- Margin %% = (CAST(sell AS DECIMAL) - CAST(cost AS DECIMAL)) / CAST(sell AS DECIMAL) * 100
-- **CRITICAL — Historical margin analysis:** `DocketLine.price` is the price at time of sale.
-  `Stock.sell` is the current price. Historical cost is NOT stored at transaction level.
-  Use `Stock.cost` as a proxy and ALWAYS note this limitation.
-- A stock item is ACTIVE if `inactive` is NULL or empty. "1" means inactive.
-- A "slow mover" = no sale in 90+ days (check DocketLine for stock_no)
+- Margin % = (sell_price - cost_price) / sell_price * 100
+- **CRITICAL — Historical margin analysis:** `DocketLine.unit_price` is the price at time of sale.
+  `Stock.sell_price` is the current price. Historical cost is NOT stored at transaction level.
+  Use `Stock.cost_price` as a proxy and ALWAYS note this limitation.
+- A stock item is ACTIVE if `inactive` is FALSE (or NULL).
+- A "slow mover" = no sale in 90+ days (check `DocketLine` + `Docket.docket_date` for `stock_id`).
 """
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from unittest.mock import patch
 
@@ -127,7 +128,7 @@ class TestOrchestratorInfrastructure:
                     break
 
         assert captured_deps is not None
-        assert captured_deps.db_path == DB_PATH
+        assert captured_deps.db_path == os.getenv("WAREHOUSE_DB_PATH", DB_PATH)
         assert captured_deps.data_dir == DATA_DIR
         assert isinstance(captured_deps.event_queue, asyncio.Queue)
 

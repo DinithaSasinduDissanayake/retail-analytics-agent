@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -53,7 +54,8 @@ async def run_analysis(
     the full updated message history for the caller to store.
     """
     event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-    deps = Deps(event_queue=event_queue, db_path=DB_PATH, data_dir=DATA_DIR)
+    db_path = os.getenv("WAREHOUSE_DB_PATH", DB_PATH)
+    deps = Deps(event_queue=event_queue, db_path=db_path, data_dir=DATA_DIR)
 
     # Rehydrate message history
     message_history: list[ModelMessage] | None = None

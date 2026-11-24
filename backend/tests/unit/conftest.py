@@ -16,4 +16,4 @@ import pytest
 @pytest.fixture
 def db_path() -> Path:
     """Absolute path to warehouse.db."""
-    return PROJECT_ROOT / "data" / "warehouse.db"
+    return Path(os.getenv("WAREHOUSE_DB_PATH", str(PROJECT_ROOT / "data" / "warehouse.db")))

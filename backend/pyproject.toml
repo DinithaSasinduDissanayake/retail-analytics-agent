@@ -11,7 +11,8 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "structlog>=24",
     "networkx>=3.2",
-    "mdbtools>=0.1",  # For mdb-export CLI wrapper
+    "pandas>=2.2",
+    # System binary required for .mdb ETL only: mdb-export (OS mdbtools package)
 ]
 
 [project.optional-dependencies]

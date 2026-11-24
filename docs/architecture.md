@@ -1,7 +1,7 @@
 ---
 title: AI-Native Data Warehouse + Guided Agent — Architecture v2
 date: 2026-06-03
-status: Pre-implementation, second review
+status: Architecture reference (core implemented: read-only DuckDB warehouse, FastAPI SSE, PydanticAI agent)
 ---
 
 # AI-Native Data Warehouse + Guided Agent — Architecture Plan
@@ -12,9 +12,6 @@ status: Pre-implementation, second review
 >
 > **Target audience:** Engineers evaluating whether this plan is sound,
 > buildable, and appropriate for the problem.
->
-> **Prepared by:** PI coding agent, with corrections from first-round reviews.
-> All cited sources have been independently verified.
 
 ---
 

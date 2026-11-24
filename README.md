@@ -2,11 +2,13 @@
 
 A full-stack, in-process retail analytics warehouse and guided conversational agent powered by **DuckDB**, **FastAPI (SSE)**, **PydanticAI**, **React + assistant-ui**, and **NetworkX (Louvain Community Detection)**.
 
-> See [docs/architecture.md](docs/architecture.md) for the full design rationale, failure-mode analysis, and security model.
+> **Public Demo Scope:** This public repository is the sanitized agent & DuckDB OLAP demo harness (using a deterministic synthetic seeder) derived from an 8-year, 263,000+-docket (487,000+ line items) private retail POS DuckDB warehouse consolidation.
+>
+> See [docs/architecture.md](docs/architecture.md) for the design rationale and security model.
 
 ## Architecture
 
-- **PEV Orchestrator (`backend/src/agent/orchestrator.py`):** Pure-code query classifier routes simple lookups to a fast single-SQL path and complex diagnostic/what-if queries through a **Plan → Execute → Verify → Route** loop with deterministic stop conditions, token/iteration budgets, and non-blocking `ask_user` queues.
+- **Streaming Tool-Calling Agent (`backend/src/agent/orchestrator.py`):** Streams `PydanticAI` `run_stream` progress and text deltas over SSE using schema-grounded SQL/Python tools, bounded by explicit request (50), tool-call (100), and wall-clock (300s) usage limits.
 - **In-Process Dual-DB OLAP (`backend/src/db/`):**
   - `warehouse.db` opened strictly with `read_only=True` at the DuckDB driver level (physically immutable by agent SQL).
   - `auxiliary.db` (read-write) for structured analysis logs and auxiliary metadata.
@@ -29,7 +31,7 @@ uv sync --extra dev   # or: pip install -e ".[dev]"
 cd ..
 
 # Seed synthetic demo data (Stock, Departments, Docket, DocketLine)
-python3 scripts/seed_demo.py --output data/demo_warehouse.db
+uv run --project backend python scripts/seed_demo.py --output data/demo_warehouse.db
 export WAREHOUSE_DB_PATH="$(pwd)/data/demo_warehouse.db"
 
 # Configure your OpenAI-compatible LLM provider
@@ -57,5 +59,5 @@ npm run dev
 cd backend && pytest
 
 # Co-purchase Louvain community detection
-WAREHOUSE_DB_PATH="data/demo_warehouse.db" PYTHONPATH=backend python3 -m src.analytics.graph_mining
+WAREHOUSE_DB_PATH="$(pwd)/data/demo_warehouse.db" PYTHONPATH=backend uv run --project backend python -m src.analytics.graph_mining
 ```
